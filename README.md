@@ -8,6 +8,16 @@ This filter relies on metadata provided by the [journald logging
 driver][], so you will need to be running Docker with `--log-driver
 journald`.
 
+## Requirements
+
+This requires a version of [rsyslog][] with support for external
+filters (the `mmexternal` plugin).  There exists [a bug in
+rsyslog][#1822] in all versions up to and including 8.29.0 that
+results in a crash when using external filters; you will need a fix
+for [#1822][] in order for this to operate correctly.
+
+[#1822]: https://github.com/rsyslog/rsyslog/issues/1822
+
 ## Example
 
 Given an input message from journald that contains:
