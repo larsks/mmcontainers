@@ -18,6 +18,9 @@ for [#1822][] in order for this to operate correctly.
 
 [#1822]: https://github.com/rsyslog/rsyslog/issues/1822
 
+There is patched version of rsyslog for RHEL/CentOS 7 available from
+<https://copr.fedorainfracloud.org/coprs/larsks/rsyslog/>.
+
 ## Example
 
 Given an input message from journald that contains:
