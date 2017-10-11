@@ -124,12 +124,9 @@ class RsyslogFilter(object):
         if data is None:
             return {}
 
-        metadata = {
-            'pod_name': data['metadata']['name'],
-            'pod_namespace': data['metadata']['namespace'],
-            'pod_labels': data['metadata']['labels'],
-            'pod_annotations': data['metadata']['annotations'],
-        }
+        metadata = {}
+        for k in ['name', 'namespace', 'labels', 'annotations', 'uid']:
+            metadata['pod_{}'.format(k)] = data['metadata'][k]
 
         return {'$!': {'k8s': metadata}}
 
