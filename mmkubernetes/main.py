@@ -9,6 +9,7 @@ import time
 import urllib3
 
 from kubernetes import client, config, watch  # NOQA
+import rsyslog.filter
 
 
 def serialize_as_str(v):
@@ -103,17 +104,10 @@ class KubeWatcher(object):
                 time.sleep(1)
 
 
-class RsyslogFilter(object):
-    def __init__(self, cache):
+class Filter(rsyslog.filter.RsyslogFilter):
+    def __init__(self, cache, *args, **kwargs):
         self.cache = cache
-
-    def messages(self):
-        while True:
-            msg = sys.stdin.readline()
-            if not msg:
-                break
-
-            yield(json.loads(msg))
+        super(Filter, self).__init__(*args, **kwargs)
 
     def handle_message(self, msg):
         if '$!' not in msg or 'CONTAINER_ID_FULL' not in msg.get('$!'):
@@ -129,12 +123,6 @@ class RsyslogFilter(object):
             metadata['pod_{}'.format(k)] = data['metadata'][k]
 
         return {'$!': {'k8s': metadata}}
-
-    def run(self):
-        for msg in self.messages():
-            sys.stdout.write(json.dumps(self.handle_message(msg)))
-            sys.stdout.write('\n')
-            sys.stdout.flush()
 
 
 def parse_args():
@@ -154,7 +142,7 @@ def main():
                           cache_dump_path=args.cache_dump_path)
     watcher.start()
 
-    filter = RsyslogFilter(watcher.cache)
+    filter = Filter(watcher.cache)
     filter.run()
 
 
