@@ -1,3 +1,4 @@
 diskcache
 daiquiri
 docker
+kubernetes
