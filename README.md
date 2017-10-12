@@ -34,6 +34,9 @@ by `mmcontainers-monitor`, and adds the metadata to the log messages.
 
 ### mmcontainers-monitor
 
+Listens to event streams from Docker and Kubernetes and maintains a
+metadata cache for use by `mmcontainers-filters`.
+
 Synopsis:
 
     usage: mmcontainers-monitor [-h] [--verbose] [--debug]
@@ -49,6 +52,10 @@ Options:
 
 ### mmcontainers-filter
 
+This is the filter for use with the [rsyslog mmexternal module][].
+
+[rsyslog mmexternal module]: http://www.rsyslog.com/doc/v8-stable/configuration/modules/mmexternal.html
+
 Synopsis:
 
     usage: mmcontainers-filter [-h] [--verbose] [--debug]
@@ -63,6 +70,28 @@ Options:
   Docker labels
 - `--include-kubernetes-metadata`, `-K` -- annotate log messages with
   Kubernetes labels and annotations
+
+### mmcontainers-cachedump
+
+A tool for inspecting the `mmcontainers` cache.
+
+Synopsis:
+
+    usage: mmcontainers-cachedump [-h] [--verbose] [--debug]
+                                  [--cache-path CACHE_PATH] [--keys-only]
+                                  [pattern [pattern ...]]
+
+Options:
+
+- `--cache-path` -- path to persistent cache
+- `--keys-only`, `-k` -- display only keys, rather than dumping keys
+  and values
+
+By default `mmcontainers-cachedump` will dump all cache keys, but you
+can limit it to specific keys by providing a glob-style pattern.  For
+example, so show only metadata from docker:
+
+    mmcontainers-cachedump 'docker/*'
 
 ## Example
 
