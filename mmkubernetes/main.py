@@ -105,9 +105,29 @@ class KubeWatcher(object):
 
 
 class Filter(rsyslog.filter.RsyslogFilter):
-    def __init__(self, cache, *args, **kwargs):
+    default_metadata_keys = ['name', 'namespace']
+
+    def __init__(self, cache,
+                 namespace=None,
+                 include_annotations=False,
+                 include_labels=False,
+                 metadata_keys=None,
+                 **kwargs):
         self.cache = cache
-        super(Filter, self).__init__(*args, **kwargs)
+        self.namespace = namespace
+
+        if metadata_keys is not None:
+            self.metadata_keys = set(metadata_keys)
+        else:
+            self.metadata_keys = set(self.default_metadata_keys)
+
+        if include_labels:
+            self.metadata_keys.add('labels')
+
+        if include_annotations:
+            self.metadata_keys.add('annotations')
+
+        super(Filter, self).__init__(**kwargs)
 
     def handle_message(self, msg):
         if '$!' not in msg or 'CONTAINER_ID_FULL' not in msg.get('$!'):
@@ -119,16 +139,27 @@ class Filter(rsyslog.filter.RsyslogFilter):
             return {}
 
         metadata = {}
-        for k in ['name', 'namespace', 'labels', 'annotations', 'uid']:
+        for k in self.metadata_keys:
             metadata['pod_{}'.format(k)] = data['metadata'][k]
 
-        return {'$!': {'k8s': metadata}}
+        return {'$!': {self.namespace: metadata}}
 
 
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--config-file', '-f')
-    p.add_argument('--cache-dump-path', '-d')
+    p.add_argument('--cache-dump-path', '-d',
+                   help='dump cache to the named file on every update')
+    p.add_argument('--namespace', '-n',
+                   default='k8s',
+                   help=('place kubernetes metadata keys under this key '
+                         'in the rsyslog message'))
+    p.add_argument('--include-annotations', '-A',
+                   action='store_true',
+                   help='include pod annotations in log messages')
+    p.add_argument('--include-labels', '-L',
+                   action='store_true',
+                   help='include pod labels in log messages')
 
     return p.parse_args()
 
@@ -142,7 +173,10 @@ def main():
                           cache_dump_path=args.cache_dump_path)
     watcher.start()
 
-    filter = Filter(watcher.cache)
+    filter = Filter(watcher.cache,
+                    namespace=args.namespace,
+                    include_annotations=args.include_annotations,
+                    include_labels=args.include_labels)
     filter.run()
 
 
