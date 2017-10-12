@@ -1,4 +1,4 @@
-# mmkubernetes: an rsyslog filter for gathering container metadata
+# mmcontainers: an rsyslog filter for gathering container metadata
 
 This is a message modification plugin for [rsyslog][] that annotates
 log messages from containers with metadata obtained from both
@@ -43,13 +43,26 @@ Synopsis:
 
 Options:
 
+- `--cache-path` -- path to persistent cache
 - `--watch-docker`, `-D` -- listen for events from Docker
 - `--watch-kubernetes`, `-K` -- listen for events from Kubernetes
-- `--cache-path` -- path to persistent cache
 
 ### mmcontainers-filter
 
 Synopsis:
+
+    usage: mmcontainers-filter [-h] [--verbose] [--debug]
+                               [--cache-path CACHE_PATH]
+                               [--include-docker-metadata]
+                               [--include-kubernetes-metadata]
+
+Options:
+
+- `--cache-path` -- path to persistent cache
+- `--include-docker-metadata`, `-D` -- annotate log messages with
+  Docker labels
+- `--include-kubernetes-metadata`, `-K` -- annotate log messages with
+  Kubernetes labels and annotations
 
 ## Example
 
@@ -63,9 +76,8 @@ Given an input message from journald that contains:
       ...
     }
 
-This filter will add a `k8s` key to the message metadata that contains
-information about the pod in which the container was running,
-including the pod name, namespace, annotations, and labels:
+This filter will add metadata from docker and kubernetes to the
+message:
 
     {
       "docker": {
