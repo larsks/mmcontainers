@@ -1,5 +1,5 @@
 import argparse
-import daiquiri
+import logging
 import sys
 
 from mmcontainers.exc import ApplicationError
@@ -29,10 +29,10 @@ class BaseApp(object):
         self.args = p.parse_args()
 
     def configure_logging(self):
-        daiquiri.setup(level=self.args.loglevel)
+        logging.basicConfig(level=self.args.loglevel)
 
     def create_logger(self):
-        self.log = daiquiri.getLogger('{}.{}'.format(
+        self.log = logging.getLogger('{}.{}'.format(
             self.__module__, self.__class__.__name__))
 
     def prepare(self):
