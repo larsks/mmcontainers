@@ -1,8 +1,8 @@
-# mmkubernetes: an rsyslog filter for gathering Kubernetes metadata
+# mmkubernetes: an rsyslog filter for gathering container metadata
 
 This is a message modification plugin for [rsyslog][] that annotates
-log messages from containers running under [Kubernetes][] with metadata
-retrieved from the Kubernetes API.
+log messages from containers with metadata obtained from both
+Docker and Kubernetes.
 
 This filter relies on metadata provided by the [journald logging
 driver][], so you will need to be running Docker with `--log-driver
@@ -21,6 +21,36 @@ for [#1822][] in order for this to operate correctly.
 There is patched version of rsyslog for RHEL/CentOS 7 available from
 <https://copr.fedorainfracloud.org/coprs/larsks/rsyslog/>.
 
+## Usage
+
+There are two parts to this solution.
+
+`mmcontainers-monitor` listens for events from Docker and Kubernetes
+and writes metadata to a persistent cache.
+
+`mmcontainers-filter` is the rsyslog filter, which receives messages
+from rsyslog, looks up associated information in the cache maintained
+by `mmcontainers-monitor`, and adds the metadata to the log messages.
+
+### mmcontainers-monitor
+
+Synopsis:
+
+    usage: mmcontainers-monitor [-h] [--verbose] [--debug]
+                                [--cache-path CACHE_PATH] [--watch-kubernetes]
+                                [--kube-config-file KUBE_CONFIG_FILE]
+                                [--watch-docker]
+
+Options:
+
+- `--watch-docker`, `-D` -- listen for events from Docker
+- `--watch-kubernetes`, `-K` -- listen for events from Kubernetes
+- `--cache-path` -- path to persistent cache
+
+### mmcontainers-filter
+
+Synopsis:
+
 ## Example
 
 Given an input message from journald that contains:
@@ -38,15 +68,32 @@ information about the pod in which the container was running,
 including the pod name, namespace, annotations, and labels:
 
     {
-      ...
-      "k8s": {
-        "pod_labels": {
+      "docker": {
+        "image": "sha256:a31ab5050b671bf43f64dba89d799e844fd7f9b907836d36e8fb711bb96fdd99",
+        "labels": {
+          "annotation.io.kubernetes.pod.terminationGracePeriod": "30",
+          "annotation.io.kubernetes.container.terminationMessagePolicy": "File",
+          "io.kubernetes.pod.namespace": "testproject",
+          "io.kubernetes.pod.name": "thttpd",
+          "io.kubernetes.container.logpath": "/var/log/pods/005e222a-ab0d-11e7-a756-5254005d0480/thttpd_2.log",
+          "annotation.io.kubernetes.container.restartCount": "2",
+          "io.kubernetes.container.name": "thttpd",
+          "annotation.io.kubernetes.container.hash": "4fac039c",
+          "annotation.io.kubernetes.container.ports": "[{\"containerPort\":7070,\"protocol\":\"TCP\"}]",
+          "io.kubernetes.docker.type": "container",
+          "io.kubernetes.pod.uid": "005e222a-ab0d-11e7-a756-5254005d0480",
+          "annotation.io.kubernetes.container.terminationMessagePath": "/dev/termination-log",
+          "io.kubernetes.sandbox.id": "c415e8adda626065e95cc7b1fb5e1d4de6596e5522572752f7af57c99c2bb539"
+        }
+      },
+      "kubernetes": {
+        "labels": {
           "cluster": "testcluster",
           "zone": "us-east-coast"
         },
-        "pod_namespace": "testproject",
-        "pod_name": "thttpd",
-        "pod_annotations": {
+        "namespace": "testproject",
+        "name": "thttpd",
+        "annotations": {
           "builder": "john-doe",
           "openshift.io/scc": "restricted",
           "build": "two"
