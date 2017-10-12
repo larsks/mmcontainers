@@ -17,7 +17,7 @@ class RsyslogFilter(object):
             yield(json.loads(msg))
 
     def handle_message(self, msg):
-        raise NotImplemented('You have not configured a message handler')
+        raise NotImplementedError('You have not configured a message handler')
 
     def run(self):
         for msg in self.messages():
