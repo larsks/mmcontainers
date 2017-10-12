@@ -11,6 +11,9 @@ class CacheDumpApp(CachingApp):
     def create_argparser(self):
         p = super(CacheDumpApp, self).create_argparser()
 
+        p.add_argument('--keys-only', '-k',
+                       action='store_true',
+                       help='only display cache keys')
         p.add_argument('pattern', nargs='*')
 
         return p
@@ -23,6 +26,9 @@ class CacheDumpApp(CachingApp):
             if any(fnmatch.fnmatch(k, pattern)
                    for pattern in self.args.pattern):
                 print(k)
+                if self.args.keys_only:
+                    continue
+
                 print(self.cache[k])
                 print('---')
 
