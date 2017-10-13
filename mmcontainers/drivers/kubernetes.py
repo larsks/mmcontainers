@@ -1,13 +1,12 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+import backoff
 import logging
 import threading
 import urllib3
 
 import kubernetes
-
-from mmcontainers.common import retry_on
 
 RETRY_EXCEPTIONS = (
     urllib3.exceptions.HTTPError,
@@ -54,7 +53,7 @@ class KubeWatcher(threading.Thread):
         for t in self.threads:
             t.join()
 
-    @retry_on(RETRY_EXCEPTIONS)
+    @backoff.on_exception(backoff.expo, RETRY_EXCEPTIONS)
     def watch(self, endpoint, cache_key_fmt):
         self.log.info('starting to watch kubernetes events')
         w = kubernetes.watch.Watch()

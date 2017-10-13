@@ -1,14 +1,13 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+import backoff
 import docker
 import json
 import logging
 import requests
 import threading
 import urllib3
-
-from mmcontainers.common import retry_on
 
 LOG = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ class DockerWatcher(threading.Thread):
         self.log = logging.getLogger('{}.{}'.format(
             self.__module__, self.__class__.__name__))
 
-    @retry_on(RETRY_EXCEPTIONS)
+    @backoff.on_exception(backoff.expo, RETRY_EXCEPTIONS)
     def create_api(self):
         self.log.info('connecting to docker api')
         self.api = docker.from_env(version=self.apiversion)
@@ -91,7 +90,7 @@ class DockerWatcher(threading.Thread):
         except KeyError:
             pass
 
-    @retry_on(RETRY_EXCEPTIONS)
+    @backoff.on_exception(backoff.expo, RETRY_EXCEPTIONS)
     def watch(self):
         self.log.info('starting to watch docker events')
         events = (json.loads(e.decode('utf8')) for e in self.api.events())
