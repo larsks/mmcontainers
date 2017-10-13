@@ -7,6 +7,14 @@ from mmcontainers.app.caching import CachingApp
 
 
 class FilterApp(CachingApp):
+
+    '''Annotate log messages with metadata from Docker and Kubernetes.
+
+    Reads JSON format logs ("fulljson") from rsyslog. If the message 
+    contains a CONTAINER_ID_FULL tag, use that to look up metadata
+    in the cache maintained by mmcontainers-monitor.
+    '''
+
     def create_argparser(self):
         p = super(FilterApp, self).create_argparser()
 
@@ -23,14 +31,15 @@ class FilterApp(CachingApp):
         super(FilterApp, self).prepare()
         self.filter = rsyslog.filter.RsyslogFilter(handler=self.handle_message)
 
-    def main(self):
         # if neither -K or -D is specified, include both
         # docker and kubernetes metadata.
-        if (self.args.include_docker_metadata is None and
-                self.args.include_kubernetes_metadata is None):
+        if all(x is None for x in (
+                self.args.include_docker_metadata,
+                self.args.include_kubernetes_metadata)):
             self.args.include_docker_metadata = True
             self.args.include_kubernetes_metadata = True
 
+    def main(self):
         self.filter.run()
 
     def add_docker_metadata(self, update, data):
@@ -63,6 +72,10 @@ class FilterApp(CachingApp):
             self.add_docker_metadata(update, data)
 
         if self.args.include_kubernetes_metadata:
+            # This relies on labels added to Docker containers by
+            # kubernetes in order to identify the pod and namespace.
+            # We could in theory also derive this information from
+            # the container name.
             if 'io.kubernetes.pod.namespace' in data['metadata']['labels']:
                 ns = data['metadata']['labels']['io.kubernetes.pod.namespace']
                 pod = data['metadata']['labels']['io.kubernetes.pod.name']

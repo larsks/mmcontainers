@@ -16,6 +16,11 @@ except ImportError:
 
 
 class MonitorApp(CachingApp):
+    '''Monitor Kubernetes and Docker for events.
+
+    Monitor event streams from Kubernetes and Docker and cache metadata
+    associated with containers, pods, and namespaces.
+    '''
 
     def create_argparser(self):
         p = super(MonitorApp, self).create_argparser()
@@ -28,7 +33,7 @@ class MonitorApp(CachingApp):
             g.add_argument('--kube-config-file',
                            help='path to a kubernetes client configuration')
         else:
-            p.set_defaults(watch_kubernetes=False)
+            p.set_defaults(watch_kubernetes=None)
 
         if mdocker is not None:
             g = p.add_argument_group('Docker options')
@@ -36,15 +41,18 @@ class MonitorApp(CachingApp):
                            action='store_true',
                            default=None)
         else:
-            p.set_defaults(watch_docker=False)
+            p.set_defaults(watch_docker=None)
 
         return p
 
     def prepare(self):
         super(MonitorApp, self).prepare()
 
-        if all(x is None
-               for x in [self.args.watch_docker, self.args.watch_kubernetes]):
+        # watch everything by default is neither --watch-docker nor
+        # --watch-kubernetes were specified on the command line.
+        if all(x is None for x in (
+                self.args.watch_docker,
+                self.args.watch_kubernetes)):
             self.args.watch_docker = mdocker is not None
             self.args.watch_kubernetes = mkubernetes is not None
 

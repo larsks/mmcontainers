@@ -14,6 +14,9 @@ RETRY_EXCEPTIONS = (
 
 
 class KubeWatcher(threading.Thread):
+
+    '''Monitor the Kubernetes event stream.'''
+
     def __init__(self, cache, prefix='kube', config_file=None):
         super(KubeWatcher, self).__init__()
 

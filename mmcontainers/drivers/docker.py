@@ -19,6 +19,12 @@ RETRY_EXCEPTIONS = (
 
 
 class DockerWatcher(threading.Thread):
+    '''Monitor the Docker event stream.
+
+    After connecting to the Docker events API, we also request a list
+    of currently running containers.
+    '''
+
     def __init__(self, cache, prefix='docker', apiversion=None):
         super(DockerWatcher, self).__init__()
         self.setDaemon(True)
