@@ -79,13 +79,14 @@ Synopsis:
 
     usage: mmcontainers-cachedump [-h] [--verbose] [--debug]
                                   [--cache-path CACHE_PATH] [--keys-only]
+                                  [--values-only]
                                   [pattern [pattern ...]]
 
 Options:
 
 - `--cache-path` -- path to persistent cache
-- `--keys-only`, `-k` -- display only keys, rather than dumping keys
-  and values
+- `--keys-only`, `-K` -- display only cache keys
+- `--values-only`, `-V` -- display only cache values
 
 By default `mmcontainers-cachedump` will dump all cache keys, but you
 can limit it to specific keys by providing a glob-style pattern.  For
