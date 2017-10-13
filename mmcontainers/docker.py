@@ -4,13 +4,14 @@ from __future__ import absolute_import
 import docker
 import json
 import logging
+import requests
 import threading
 import urllib3
-import requests
 
-from mmcontainers.common import backoff
+from mmcontainers.common import retry_on
 
 LOG = logging.getLogger(__name__)
+
 RETRY_EXCEPTIONS = (
     urllib3.exceptions.HTTPError,
     requests.exceptions.RequestException,
@@ -21,6 +22,7 @@ RETRY_EXCEPTIONS = (
 class DockerWatcher(threading.Thread):
     def __init__(self, cache, prefix='docker', apiversion=None):
         super(DockerWatcher, self).__init__()
+        self.setDaemon(True)
 
         if apiversion is None:
             apiversion = 'auto'
@@ -35,24 +37,16 @@ class DockerWatcher(threading.Thread):
         self.log = logging.getLogger('{}.{}'.format(
             self.__module__, self.__class__.__name__))
 
+    @retry_on(RETRY_EXCEPTIONS)
     def create_api(self):
-        interval = backoff(maxinterval=30)
-
-        while True:
-            try:
-                self.api = docker.from_env(version=self.apiversion)
-                break
-            except RETRY_EXCEPTIONS as err:
-                self.log.warning('caught exception %s (%s); retrying',
-                                 type(err), err)
-                next(interval)
+        self.log.info('connecting to docker api')
+        self.api = docker.from_env(version=self.apiversion)
 
     def run(self):
         self.create_api()
+
         self.threads = []
-
-        self.threads.append(threading.Thread(target=self.restart_watch))
-
+        self.threads.append(threading.Thread(target=self.watch))
         for t in self.threads:
             t.setDaemon(True)
             t.start()
@@ -61,6 +55,9 @@ class DockerWatcher(threading.Thread):
         # containers
         for container in self.api.containers.list():
             self.add_container(container.id)
+
+        for t in self.threads:
+            t.join()
 
     def cache_key(self, cid):
         return '{prefix}/{id}'.format(
@@ -94,22 +91,9 @@ class DockerWatcher(threading.Thread):
         except KeyError:
             pass
 
-    def join(self):
-        for t in self.threads:
-            t.join()
-
-    def restart_watch(self):
-        interval = backoff(maxinterval=30)
-
-        while True:
-            try:
-                self.watch()
-            except RETRY_EXCEPTIONS as err:
-                self.log.warning('caught exception %s (%s); retrying',
-                                 type(err), err)
-                next(interval)
-
+    @retry_on(RETRY_EXCEPTIONS)
     def watch(self):
+        self.log.info('starting to watch docker events')
         events = (json.loads(e.decode('utf8')) for e in self.api.events())
         for event in events:
             self.log.debug('received %s event for %s %s',

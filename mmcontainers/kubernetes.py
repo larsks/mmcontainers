@@ -7,7 +7,11 @@ import urllib3
 
 import kubernetes
 
-from mmcontainers.common import backoff
+from mmcontainers.common import retry_on
+
+RETRY_EXCEPTIONS = (
+    urllib3.exceptions.HTTPError,
+)
 
 
 class KubeWatcher(threading.Thread):
@@ -35,11 +39,11 @@ class KubeWatcher(threading.Thread):
         self.threads = []
 
         self.threads.append(threading.Thread(
-            target=self.restart_watch,
+            target=self.watch,
             args=(self.api.list_pod_for_all_namespaces,
                   '{prefix}/{metadata.namespace}/{metadata.name}')))
         self.threads.append(threading.Thread(
-            target=self.restart_watch,
+            target=self.watch,
             args=(self.api.list_namespace,
                   '{prefix}/{metadata.name}')))
 
@@ -50,22 +54,9 @@ class KubeWatcher(threading.Thread):
         for t in self.threads:
             t.join()
 
-    def restart_watch(self, endpoint, cache_key_fmt):
-        interval = backoff(maxinterval=30)
-
-        while True:
-            try:
-                self.watch(endpoint, cache_key_fmt)
-            except urllib3.exceptions.HTTPError as err:
-                self.log.warning('caught exception %s (%s); retrying',
-                                 type(err), err)
-                next(interval)
-            except kubernetes.client.rest.ApiException as err:
-                self.log.error(
-                    'failed to connect to kubernetes: {}'.format(err))
-                break
-
+    @retry_on(RETRY_EXCEPTIONS)
     def watch(self, endpoint, cache_key_fmt):
+        self.log.info('starting to watch kubernetes events')
         w = kubernetes.watch.Watch()
         for event in w.stream(endpoint):
             cache_key = cache_key_fmt.format(
