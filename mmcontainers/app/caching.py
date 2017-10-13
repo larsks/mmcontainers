@@ -5,6 +5,8 @@ from mmcontainers import defaults
 
 
 class CachingApp(BaseApp):
+    shards = 8
+
     def create_argparser(self):
         p = super(CachingApp, self).create_argparser()
 
@@ -15,4 +17,7 @@ class CachingApp(BaseApp):
         return p
 
     def prepare(self):
-        self.cache = diskcache.Index(self.args.cache_path)
+        cache = diskcache.FanoutCache(self.args.cache_path,
+                                      shards=self.shards,
+                                      eviction_policy='none')
+        self.cache = diskcache.Index.fromcache(cache)
