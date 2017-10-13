@@ -5,7 +5,7 @@ import logging
 import threading
 import urllib3
 
-from kubernetes import client, config, watch  # NOQA
+import kubernetes
 
 from mmcontainers.common import backoff
 
@@ -26,8 +26,8 @@ class KubeWatcher(threading.Thread):
             self.__module__, self.__class__.__name__))
 
     def create_api(self):
-        config.load_kube_config(config_file=self.config_file)
-        self.api = client.CoreV1Api()
+        kubernetes.config.load_kube_config(config_file=self.config_file)
+        self.api = kubernetes.client.CoreV1Api()
 
     def run(self):
         self.create_api()
@@ -60,9 +60,13 @@ class KubeWatcher(threading.Thread):
                 self.log.warning('caught exception %s (%s); retrying',
                                  type(err), err)
                 next(interval)
+            except kubernetes.client.rest.ApiException as err:
+                self.log.error(
+                    'failed to connect to kubernetes: {}'.format(err))
+                break
 
     def watch(self, endpoint, cache_key_fmt):
-        w = watch.Watch()
+        w = kubernetes.watch.Watch()
         for event in w.stream(endpoint):
             cache_key = cache_key_fmt.format(
                 metadata=event['object'].metadata,

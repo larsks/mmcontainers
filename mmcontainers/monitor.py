@@ -62,6 +62,7 @@ class MonitorApp(CachingApp):
             watcher.start()
 
         self.log.debug('all watchers are running')
-        signal.pause()
+        for watcher in watchers:
+            watcher.join()
 
 app = MonitorApp()
