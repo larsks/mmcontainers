@@ -1,18 +1,16 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-import signal
-
 from mmcontainers.app.caching import CachingApp
 from mmcontainers.exc import ApplicationError
 
 try:
-    import mmcontainers.docker as mdocker
+    import mmcontainers.drivers.docker as mdocker
 except ImportError:
     mdocker = None
 
 try:
-    import mmcontainers.kubernetes as mkubernetes
+    import mmcontainers.drivers.kubernetes as mkubernetes
 except ImportError:
     mkubernetes = None
 
@@ -25,7 +23,8 @@ class MonitorApp(CachingApp):
         if mkubernetes is not None:
             g = p.add_argument_group('Kubernetes options')
             g.add_argument('--watch-kubernetes', '-K',
-                           action='store_true')
+                           action='store_true',
+                           default=None)
             g.add_argument('--kube-config-file',
                            help='path to a kubernetes client configuration')
         else:
@@ -34,11 +33,20 @@ class MonitorApp(CachingApp):
         if mdocker is not None:
             g = p.add_argument_group('Docker options')
             g.add_argument('--watch-docker', '-D',
-                           action='store_true')
+                           action='store_true',
+                           default=None)
         else:
             p.set_defaults(watch_docker=False)
 
         return p
+
+    def prepare(self):
+        super(MonitorApp, self).prepare()
+
+        if all(x is None
+               for x in [self.args.watch_docker, self.args.watch_kubernetes]):
+            self.args.watch_docker = mdocker is not None
+            self.args.watch_kubernetes = mkubernetes is not None
 
     def main(self):
         self.cache.clear()
