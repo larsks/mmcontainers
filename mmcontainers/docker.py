@@ -110,10 +110,12 @@ class DockerWatcher(threading.Thread):
                 next(interval)
 
     def watch(self):
-        events = (json.loads(e) for e in self.api.events())
+        events = (json.loads(e.decode('utf8')) for e in self.api.events())
         for event in events:
-            self.log.debug('received %s event for %s',
-                           event.get('Action'), event.get('Actor'))
+            self.log.debug('received %s event for %s %s',
+                           event.get('Action'), event.get('Type'),
+                           event.get('Actor', {}).get('ID'))
+
             if event.get('Type') != 'container':
                 continue
             if event.get('Action') not in ['start', 'die']:
