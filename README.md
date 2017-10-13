@@ -1,8 +1,10 @@
 # mmcontainers: an rsyslog filter for gathering container metadata
 
-This is a message modification plugin for [rsyslog][] that annotates
+[mmcontainers][] is a message modification plugin for [rsyslog][] that annotates
 log messages from containers with metadata obtained from both
 Docker and Kubernetes.
+
+[mmcontainers]: https://github.com/larsks/mmcontainers/
 
 This filter relies on metadata provided by the [journald logging
 driver][], so you will need to be running Docker with `--log-driver
@@ -20,6 +22,18 @@ for [#1822][] in order for this to operate correctly.
 
 There is patched version of rsyslog for RHEL/CentOS 7 available from
 <https://copr.fedorainfracloud.org/coprs/larsks/rsyslog/>.
+
+## Installation
+
+This is a standard Python package, so you may install it straight from
+GitHub:
+
+    pip install git+https://github.com/larsks/mmcontainers
+
+Or if you already have the code checked out locally you can install it
+from the project directory:
+
+    pip install .
 
 ## Usage
 
@@ -73,7 +87,8 @@ Options:
 
 ### mmcontainers-cachedump
 
-A tool for inspecting the `mmcontainers` cache.
+A tool for inspecting the `mmcontainers` cache.  Values will be dumped
+as JSON strings.
 
 Synopsis:
 
@@ -93,6 +108,11 @@ can limit it to specific keys by providing a glob-style pattern.  For
 example, so show only metadata from docker:
 
     mmcontainers-cachedump 'docker/*'
+
+Or to get a nicely formatted version of the metadata for a particular
+Kubernetes pod:
+
+    mmcontainers-cachedump -V kube/testproject/thttpd | jq . | less
 
 ## Example
 
@@ -151,3 +171,10 @@ See [rsyslog.conf](rsyslog.conf) for an example configuration.
 [rsyslog]: http://www.rsyslog.com/
 [kubernetes]: https://kubernetes.io/
 [journald logging driver]: https://docs.docker.com/engine/admin/logging/journald/
+
+## Contribution
+
+Bug reports, comments, and suggestions can be filed with our [GitHub
+issue tracker](https://github.com/larsks/mmcontainers/issues).
+
+Pull requests are always welcome.
